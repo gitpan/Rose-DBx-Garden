@@ -19,6 +19,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'garden_prefix',
     'scalar --get_set_init' => 'perltidy_opts',
     'scalar --get_set_init' => 'base_code',
+    'scalar --get_set_init' => 'text_field_size',
 );
 
 =head1 NAME
@@ -33,7 +34,7 @@ B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 SYNOPSIS
 
@@ -89,11 +90,12 @@ sub init_column_field_map {
         'integer'          => 'integer',
         'serial'           => 'hidden',
         'time'             => 'time',
-        'timestamp'        => 'time',
+        'timestamp'        => 'datetime',
         'float'            => 'numeric',    # TODO nice to have ::Field::Float
         'numeric'          => 'numeric',
         'decimal'          => 'numeric',
         'double precision' => 'numeric',
+        'boolean'          => 'boolean',
     };
 }
 
@@ -143,6 +145,16 @@ The default is 0 (no run through Perl::Tidy).
 =cut
 
 sub init_perltidy_opts {0}
+
+=head2 init_text_field_size
+
+Tie the size and maxlength of text input fields to the allowed length
+of text columns. Should be set to an integer corresponding to the max
+size of a text field. The default is 64.
+
+=cut
+
+sub init_text_field_size {64}
 
 =head2 init_base_code
 
@@ -197,7 +209,8 @@ $base_code
 1;
 EOF
 
-    $self->_make_file( $garden_prefix, $base_template );
+    $self->_make_file( $garden_prefix, $base_template )
+        unless ( defined $base_code && $base_code eq '0' );
 
     # find all schemas if this db supports them
     my %schemas;
@@ -223,6 +236,8 @@ EOF
 
     my $postamble = $self->module_postamble;
 
+    $Rose::DB::Object::Loader::Debug = $ENV{PERL_DEBUG} || 0;
+
     for my $schema ( keys %schemas ) {
 
         #carp "working on schema $schema";
@@ -247,6 +262,8 @@ EOF
         $self->base_class($schema_class);   # already wrote it, so can require
 
         my @classes = $self->make_classes;
+
+        #carp dump \@classes;
 
         for my $class (@classes) {
 
@@ -318,12 +335,15 @@ use base qw( Rose::HTML::Form );
 1;
 EOF
 
-    $self->_make_file( $base_form_class, $base_form_template, 1 );
+    $self->_make_file( $base_form_class, $base_form_template );
 
     for my $rdbo_class (@rdbo_classes) {
 
         # don't make forms for map tables
-        next if $self->convention_manager->is_map_class($rdbo_class);
+        if ( $self->convention_manager->is_map_class($rdbo_class) ) {
+            print " ... skipping map_class $rdbo_class\n";
+            next;
+        }
 
         my $form_class = join( '::', $rdbo_class, 'Form' );
         my $form_template = $self->_form_template( $rdbo_class, $form_class,
@@ -353,6 +373,12 @@ sub _form_template {
 package $form_class;
 use strict;
 use base qw( $base_form_class );
+
+use Rose::HTMLx::Form::Field::Boolean;
+use Rose::HTMLx::Form::Field::Autocomplete;
+
+__PACKAGE__->field_type_classes->{boolean}      = 'Rose::HTMLx::Form::Field::Boolean';
+__PACKAGE__->field_type_classes->{autocomplete} = 'Rose::HTMLx::Form::Field::Autocomplete';
 
 sub build_form {
     my \$self = shift;
@@ -395,17 +421,147 @@ sub __by_position {
 
 sub _column_to_field {
     my ( $self, $column, $tabindex ) = @_;
-    my $label_maker = $self->column_to_label;
-    my $name        = $column->name;
     my $col_type    = $column->type;
     my $type        = $self->column_field_map->{$col_type} || 'text';
-    my $label       = $label_maker->( $self, $name );
+    my $field_maker = 'garden_' . $type . '_field';
+    my $label_maker = $self->column_to_label;
+    my $label       = $label_maker->( $self, $column->name );
+
+    unless ( $self->can($field_maker) ) {
+        $field_maker = 'garden_default_field';
+    }
+
+    return $self->$field_maker( $column, $label, $tabindex );
+}
+
+=head2 garden_default_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a generic Form field.
+
+=cut
+
+sub garden_default_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $type     = $self->column_field_map->{$col_type} || 'text';
+    my $name     = $column->name;
+    my $length   = $column->can('length') ? $column->length() : 0;
+    $length = 0 unless defined $length;
+    my $maxlen = $self->text_field_size;
+
+    if ( $length > $maxlen ) {
+        $length = $maxlen;
+    }
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => '$type',   # $col_type
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        size        => $length,
+        maxlength   => $maxlen,
+        },
+EOF
+}
+
+=head2 garden_boolean_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a boolean Form field.
+
+=cut
+
+sub garden_boolean_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
+
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => 'boolean',   # $col_type
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        },
+EOF
+}
+
+=head2 garden_text_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a text Form field.
+
+=cut
+
+sub garden_text_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
+    my $length   = $column->can('length') ? $column->length() : 0;
+    $length = 0 unless defined $length;
+    my $maxlen = $self->text_field_size;
+
+    if ( $length > $maxlen ) {
+        $length = $maxlen;
+    }
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => 'text',   # $col_type
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        size        => $length,
+        maxlength   => $maxlen,
+        },
+EOF
+}
+
+=head2 garden_textarea_field( I<column>, I<label>, I<tabindex> )
+
+Returns Perl code for textarea field.
+
+=cut
+
+sub garden_textarea_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
+    my $length   = $column->can('length') ? $column->length() : 0;
+    $length = 0 unless defined $length;
+    my $maxlen = $self->text_field_size;
+
+    if ( $length > $maxlen ) {
+        $length = $maxlen;
+    }
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => 'text',   # $col_type
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        size        => $maxlen . 'x8',
+        },
+EOF
+}
+
+=head2 garden_hidden_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a hidden Form field.
+
+=cut
+
+sub garden_hidden_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
     return <<EOF;
     $name => {
         id      => '$name',
-        type    => '$type',   # $col_type
+        type    => 'hidden',   # $col_type
         label   => '$label',
-        tabindex => $tabindex
+        rank    => $tabindex,
         },
 EOF
 }
@@ -434,7 +590,10 @@ sub _make_file {
     my $fullpath = dir( $self->module_dir, $path );
 
     unless ( $self->force_install ) {
-        return if -s $file;
+        if ( -s $file ) {
+            print " ... skipping $class ($file)\n";
+            return;
+        }
     }
 
     $fullpath->mkpath(1) if $path;

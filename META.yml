@@ -1,16 +1,18 @@
 --- #YAML:1.0
 name:                Rose-DBx-Garden
-version:             0.01
+version:             0.02
 abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.36
 distribution_type:   module
 requires:     
     Data::Dump:                    0
+    File::Basename:                0
     File::Slurp:                   0
     Path::Class:                   0
     Rose::DB::Object:              0
     Rose::DBx::TestDB:             0
+    Rose::HTML::Objects:           0
     Test::More:                    0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.2.html

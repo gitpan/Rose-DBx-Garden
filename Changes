@@ -3,3 +3,14 @@ Revision history for Rose-DBx-Garden
 0.01    25 Oct 2007
         First version, released on an unsuspecting world.
 
+0.02    9 Nov 2007
+        * added RHTMLO to the prereq list
+        * if base_code == 0, no base RDBO class is written
+        * added _*_field_maker methods
+        * some debugging help
+        * changed default column_to_field map:
+            - added boolean
+            - changed 'timestamp' to map to 'datetime'
+        * added text_field_size()
+        * make the garden_*_field() methods public.
+        
