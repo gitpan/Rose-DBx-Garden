@@ -34,7 +34,7 @@ B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 SYNOPSIS
 

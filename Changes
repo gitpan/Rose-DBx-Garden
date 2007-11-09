@@ -13,4 +13,8 @@ Revision history for Rose-DBx-Garden
             - changed 'timestamp' to map to 'datetime'
         * added text_field_size()
         * make the garden_*_field() methods public.
+
+0.03    9 Nov 2007
+        * added Rose::HTMLx::Form::Field::Boolean to req list
+
         
