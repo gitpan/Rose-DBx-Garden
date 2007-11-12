@@ -34,7 +34,7 @@ B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -196,13 +196,27 @@ sub plant {
 
     my $garden_prefix = $self->garden_prefix;
 
-    my $base_code = $self->base_code;
+    # setup the base RDBO class
+    my $base_code  = $self->base_code;
+    my $db         = $self->db or croak "db required";
+    my $db_class   = $db->class;
+    my $new_method = $db->can('new_or_cached') ? 'new_or_cached' : 'new';
+    my $db_type    = $db->type;
+    my $db_domain  = $db->domain;
 
     # make the base class unless it already exists
     my $base_template = <<EOF;
 package $garden_prefix;
 use strict;
 use base qw( Rose::DB::Object );
+use $db_class;
+use ${garden_prefix}::Metadata;
+
+sub init_db { 
+    ${db_class}->$new_method( type => '$db_type', domain => '$db_domain' ) 
+}
+
+sub meta_class { '${garden_prefix}::Metadata' }
 
 $base_code
 
@@ -212,11 +226,14 @@ EOF
     $self->_make_file( $garden_prefix, $base_template )
         unless ( defined $base_code && $base_code eq '0' );
 
+    $self->_make_file( join( '::', $garden_prefix, 'Metadata' ),
+        $self->_metadata_template );
+
     # find all schemas if this db supports them
     my %schemas;
     if ( $self->find_schemas ) {
         my %native = ( information_schema => 1, pg_catalog => 1 );
-        my $info = $self->db->dbh->table_info( undef, '%', undef, 'TABLE' )
+        my $info = $db->dbh->table_info( undef, '%', undef, 'TABLE' )
             ->fetchall_arrayref;
 
         #carp dump $info;
@@ -355,6 +372,29 @@ EOF
     }
 
     return [ @rdbo_classes, @form_classes ];
+}
+
+sub _metadata_template {
+    my $self            = shift;
+    my $base_rdbo_class = $self->garden_prefix;
+
+    return <<EOF;
+package ${base_rdbo_class}::Metadata;
+
+use strict;
+use warnings;
+
+use base qw( Rose::DB::Object::Metadata );
+
+sub setup {
+    my \$self   = shift;
+    my \$schema = \$self->class->schema;
+    \$self->SUPER::setup( \@_, schema => \$schema );
+}
+
+1;
+
+EOF
 }
 
 sub _form_template {

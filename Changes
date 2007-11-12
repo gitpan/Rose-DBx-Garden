@@ -17,4 +17,13 @@ Revision history for Rose-DBx-Garden
 0.03    9 Nov 2007
         * added Rose::HTMLx::Form::Field::Boolean to req list
 
+0.04    12 Nov 2007
+        * add missing Metadata subclass for schema support
+        * add missing init_db() to base class template, with detection
+          for the new_or_cached() method.
+        * clean up test files after tests
+
+
+
+ 
         

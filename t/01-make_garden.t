@@ -1,12 +1,12 @@
 use Test::More tests => 16;
 
-use File::Temp qw( tempdir );
+use File::Temp ( 'tempdir' );
 use Rose::DBx::Garden;
 use Rose::DBx::TestDB;
 use Path::Class;
 use Rose::HTML::Form;
 
-my $debug = $ENV{PERL_DEBUG} || 1;
+my $debug = $ENV{PERL_DEBUG} || 0;
 
 my $db = Rose::DBx::TestDB->new;
 
@@ -62,7 +62,7 @@ ok( my $garden = Rose::DBx::Garden->new(
     "garden obj created"
 );
 
-my $dir = $debug ? '/tmp/rose_garden' : tempdir();
+my $dir = $debug ? '/tmp/rose_garden' : tempdir('rose_garden_XXXX', CLEANUP => 1);
 
 ok( $garden->make_garden($dir), "make_garden" );
 
