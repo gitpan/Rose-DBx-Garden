@@ -23,7 +23,13 @@ Revision history for Rose-DBx-Garden
           for the new_or_cached() method.
         * clean up test files after tests
 
+0.05    19 Nov 2007
+        * custom object_from_form() and init_with_object() methods per
+          recommended convention.
+        * plant() now returns hash ref (RDBO => RHTMLO) instead of array ref
+        * 'class' attribute set on each field to original column type value.
+        * add garden_prefix() accessor in generated classes
 
 
+       
  
-        

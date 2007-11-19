@@ -19,22 +19,15 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'garden_prefix',
     'scalar --get_set_init' => 'perltidy_opts',
     'scalar --get_set_init' => 'base_code',
+    'scalar --get_set_init' => 'base_form_class_code',
     'scalar --get_set_init' => 'text_field_size',
 );
+
+our $VERSION = '0.05';
 
 =head1 NAME
 
 Rose::DBx::Garden - bootstrap Rose::DB::Object and Rose::HTML::Form classes
-
-=head1 VERSION
-
-Version 0.01
-
-B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
-
-=cut
-
-our $VERSION = '0.04';
 
 =head1 SYNOPSIS
 
@@ -56,6 +49,8 @@ our $VERSION = '0.04';
  $garden->plant('path/to/where/i/want/files');
 
 =head1 DESCRIPTION
+
+B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
 
 Rose::DBx::Garden bootstraps Rose::DB::Object and Rose::HTML::Form based projects.
 The idea is that you can point the module at a database and end up with work-able
@@ -164,11 +159,23 @@ The return value is inserted into the base RDBO class created.
 
 sub init_base_code {''}
 
+=head2 init_base_form_class_code
+
+The return value is inserted into the base RHTMLO class created;
+
+=cut
+
+sub init_base_form_class_code {''}
+
 =head2 plant( I<path> )
 
 I<path> will override module_dir() if set in new().
 
-Returns an array ref of all the class names created.
+Returns a hash ref of all the class names created, in the format:
+
+ RDBO::Class => RHTMLO::Class
+ 
+If no RHTMLO class was created the hash value will be '1'.
 
 =head2 make_garden
 
@@ -218,6 +225,14 @@ sub init_db {
 
 sub meta_class { '${garden_prefix}::Metadata' }
 
+=head2 garden_prefix
+
+Returns the garden_prefix() value with which this class was created.
+
+=cut
+
+sub garden_prefix { '${garden_prefix}' }
+
 $base_code
 
 1;
@@ -247,7 +262,7 @@ EOF
         %schemas = ( '' => '' );
     }
 
-    my ( @rdbo_classes, @form_classes );
+    my ( %created_classes );
 
     my $preamble = $self->module_preamble;
 
@@ -307,7 +322,7 @@ EOF
                         : $postamble;
                 }
 
-                push( @rdbo_classes, $class );
+                $created_classes{$class} = 1;
             }
             elsif ( $class->isa('Rose::DB::Object::Manager') ) {
                 $template
@@ -345,33 +360,44 @@ EOF
 
     # first create the base ::Form class.
     my $base_form_class = join( '::', $garden_prefix, 'Form' );
+    my $base_form_class_code = $self->base_form_class_code || '';
     my $base_form_template = <<EOF;
 package $base_form_class;
 use strict;
 use base qw( Rose::HTML::Form );
+
+$base_form_class_code
+
+=head2 garden_prefix
+
+Returns the garden_prefix() value with which this class was created.
+
+=cut
+
+sub garden_prefix { '$garden_prefix' }
+
 1;
 EOF
 
     $self->_make_file( $base_form_class, $base_form_template );
 
-    for my $rdbo_class (@rdbo_classes) {
+    for my $rdbo_class (keys %created_classes) {
 
         # don't make forms for map tables
         if ( $self->convention_manager->is_map_class($rdbo_class) ) {
             print " ... skipping map_class $rdbo_class\n";
             next;
         }
-
         my $form_class = join( '::', $rdbo_class, 'Form' );
         my $form_template = $self->_form_template( $rdbo_class, $form_class,
             $base_form_class );
 
-        push( @form_classes, $form_class );
+        $created_classes{$rdbo_class} = $form_class;
 
         $self->_make_file( $form_class, $form_template );
     }
 
-    return [ @rdbo_classes, @form_classes ];
+    return \%created_classes;
 }
 
 sub _metadata_template {
@@ -400,10 +426,14 @@ EOF
 sub _form_template {
     my ( $self, $rdbo_class, $form_class, $base_form_class ) = @_;
 
-    # load the rdbo class and examine its metadata
+    # load the rdbo class and examine its metadata.
+
     # make sure rdbo_class is loaded
     eval "require $rdbo_class";
     croak "can't load $rdbo_class: $@" if $@;
+
+    my $object_name
+        = $self->convention_manager->class_to_table_singular($rdbo_class);
 
     # create a form template using the column definitions
     # as seed for the form field definitions
@@ -419,6 +449,18 @@ use Rose::HTMLx::Form::Field::Autocomplete;
 
 __PACKAGE__->field_type_classes->{boolean}      = 'Rose::HTMLx::Form::Field::Boolean';
 __PACKAGE__->field_type_classes->{autocomplete} = 'Rose::HTMLx::Form::Field::Autocomplete';
+
+sub object_class { '$rdbo_class' }
+
+sub init_with_${object_name} {
+    my \$self = shift;
+    \$self->init_with_object(\@_);
+}
+
+sub ${object_name}_from_form {
+    my \$self = shift;
+    \$self->object_from_form(\@_);
+}
 
 sub build_form {
     my \$self = shift;
@@ -495,7 +537,8 @@ sub garden_default_field {
     return <<EOF;
     $name => {
         id          => '$name',
-        type        => '$type',   # $col_type
+        type        => '$type',
+        class       => '$col_type',
         label       => '$label',
         tabindex    => $tabindex,
         rank        => $tabindex,
@@ -519,10 +562,11 @@ sub garden_boolean_field {
     return <<EOF;
     $name => {
         id          => '$name',
-        type        => 'boolean',   # $col_type
+        type        => 'boolean',
         label       => '$label',
         tabindex    => $tabindex,
         rank        => $tabindex,
+        class       => '$col_type',
         },
 EOF
 }
@@ -547,7 +591,8 @@ sub garden_text_field {
     return <<EOF;
     $name => {
         id          => '$name',
-        type        => 'text',   # $col_type
+        type        => 'text',
+        class       => '$col_type',
         label       => '$label',
         tabindex    => $tabindex,
         rank        => $tabindex,
@@ -577,7 +622,8 @@ sub garden_textarea_field {
     return <<EOF;
     $name => {
         id          => '$name',
-        type        => 'text',   # $col_type
+        type        => 'text',
+        class       => '$col_type',
         label       => '$label',
         tabindex    => $tabindex,
         rank        => $tabindex,
@@ -599,7 +645,8 @@ sub garden_hidden_field {
     return <<EOF;
     $name => {
         id      => '$name',
-        type    => 'hidden',   # $col_type
+        type    => 'hidden',
+        class   => '$col_type',
         label   => '$label',
         rank    => $tabindex,
         },
