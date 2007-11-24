@@ -66,16 +66,22 @@ my $dir = $debug ? '/tmp/rose_garden' : tempdir('rose_garden_XXXX', CLEANUP => 1
 
 ok( $garden->make_garden($dir), "make_garden" );
 
+# get db name as $garden made it
+my $dbname = $db->database;
+$dbname =~ s!.*/!!g;
+$dbname =~ s/\W/_/g;
+$dbname = ucfirst($dbname);
+
 # are the files there?
 ok( -s file( $dir, 'MyRDBO.pm' ), "base class exists" );
-ok( -s file( $dir, 'MyRDBO', 'Foo.pm' ), "table class exists" );
-ok( -s file( $dir, 'MyRDBO', 'Foo', 'Form.pm' ),    "form class exists" );
-ok( -s file( $dir, 'MyRDBO', 'Foo', 'Manager.pm' ), "manager class exists" );
+ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo.pm' ), "table class exists" );
+ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Form.pm' ),    "form class exists" );
+ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Manager.pm' ), "manager class exists" );
 
 # do they compile?
 
 for my $class (
-    qw( MyRDBO MyRDBO::Form MyRDBO::Foo MyRDBO::Foo::Form MyRDBO::Foo::Manager )
+    ( "MyRDBO", "MyRDBO::Form", "MyRDBO::${dbname}::Foo", "MyRDBO::${dbname}::Foo::Form", "MyRDBO::${dbname}::Foo::Manager" )
     )
 {
 
@@ -94,7 +100,7 @@ for my $class (
     ok( !$@, "require $class" );
     diag($@) and next if $@;
 
-    if ( $class eq 'MyRDBO::Foo::Form' ) {
+    if ( $class eq "MyRDBO::${dbname}::Foo::Form" ) {
         ok( my $form = $class->new, "new $class" );
         is( $form->field('my_int')->label, 'My Int', "label callback works" );
         is( $form->field('my_int')->isa('Rose::HTML::Form::Field::Integer'),

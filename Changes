@@ -30,6 +30,7 @@ Revision history for Rose-DBx-Garden
         * 'class' attribute set on each field to original column type value.
         * add garden_prefix() accessor in generated classes
 
-
-       
+0.06    23 Nov 2007
+        * fix schema() use in Metadata where find_schemas() is false.
+        * use database name as pseudo schema when find_schemas() is false.
  

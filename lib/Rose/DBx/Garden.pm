@@ -23,7 +23,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'text_field_size',
 );
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 =head1 NAME
 
@@ -217,13 +217,10 @@ package $garden_prefix;
 use strict;
 use base qw( Rose::DB::Object );
 use $db_class;
-use ${garden_prefix}::Metadata;
 
 sub init_db { 
     ${db_class}->$new_method( type => '$db_type', domain => '$db_domain' ) 
 }
-
-sub meta_class { '${garden_prefix}::Metadata' }
 
 =head2 garden_prefix
 
@@ -235,14 +232,25 @@ sub garden_prefix { '${garden_prefix}' }
 
 $base_code
 
-1;
 EOF
+
+    # append metadata if we are using schemas
+    if ( $self->find_schemas ) {
+
+        $base_template .= <<EOF;
+
+use ${garden_prefix}::Metadata;
+sub meta_class { '${garden_prefix}::Metadata' }
+
+EOF
+
+    }
+
+    # need a 1 no matter what
+    $base_template .= "\n1;\n";
 
     $self->_make_file( $garden_prefix, $base_template )
         unless ( defined $base_code && $base_code eq '0' );
-
-    $self->_make_file( join( '::', $garden_prefix, 'Metadata' ),
-        $self->_metadata_template );
 
     # find all schemas if this db supports them
     my %schemas;
@@ -257,12 +265,21 @@ EOF
             next if exists $native{ $row->[1] };
             $schemas{ $row->[1] }++;
         }
+
+        # only need custom metadata if we are using schemas
+        $self->_make_file( join( '::', $garden_prefix, 'Metadata' ),
+            $self->_metadata_template );
+
     }
     else {
-        %schemas = ( '' => '' );
+
+        my $dbname = $db->database;
+        $dbname =~ s!.*/!!;
+        $dbname =~ s/\W/_/g;
+        %schemas = ( $dbname => '' );
     }
 
-    my ( %created_classes );
+    my (%created_classes);
 
     my $preamble = $self->module_preamble;
 
@@ -285,7 +302,7 @@ EOF
                 $schema );
 
             $self->_make_file( $schema_class, $schema_tmpl );
-            $self->db_schema($schema);
+            $self->db_schema($schema) if $self->find_schemas;
         }
 
         #carp "schema_class: $schema_class";
@@ -381,7 +398,7 @@ EOF
 
     $self->_make_file( $base_form_class, $base_form_template );
 
-    for my $rdbo_class (keys %created_classes) {
+    for my $rdbo_class ( keys %created_classes ) {
 
         # don't make forms for map tables
         if ( $self->convention_manager->is_map_class($rdbo_class) ) {
