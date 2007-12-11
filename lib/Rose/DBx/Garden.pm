@@ -11,8 +11,9 @@ use File::Basename;
 
 use Rose::Object::MakeMethods::Generic (
     boolean => [
-        'find_schemas'  => { default => 1 },
+        'find_schemas'  => { default => 0 },
         'force_install' => { default => 0 },
+        'debug'         => { default => 0 },
     ],
     'scalar --get_set_init' => 'column_field_map',
     'scalar --get_set_init' => 'column_to_label',
@@ -23,7 +24,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'text_field_size',
 );
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 NAME
 
@@ -281,11 +282,10 @@ EOF
 
     my (%created_classes);
 
-    my $preamble = $self->module_preamble;
-
+    my $preamble  = $self->module_preamble;
     my $postamble = $self->module_postamble;
 
-    $Rose::DB::Object::Loader::Debug = $ENV{PERL_DEBUG} || 0;
+    $Rose::DB::Object::Loader::Debug = $self->debug || $ENV{PERL_DEBUG} || 0;
 
     for my $schema ( keys %schemas ) {
 

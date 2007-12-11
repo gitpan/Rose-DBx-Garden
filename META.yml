@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Rose-DBx-Garden
-version:             0.06
+version:             0.07
 abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.36

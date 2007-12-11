@@ -33,4 +33,9 @@ Revision history for Rose-DBx-Garden
 0.06    23 Nov 2007
         * fix schema() use in Metadata where find_schemas() is false.
         * use database name as pseudo schema when find_schemas() is false.
+
+0.07    10 Dec 2007
+        * change find_schemas() default to 0, since only majority of common dbs do not
+          yet support schemas.
+        * added debug() flag
  
