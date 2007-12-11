@@ -38,4 +38,8 @@ Revision history for Rose-DBx-Garden
         * change find_schemas() default to 0, since only majority of common dbs do not
           yet support schemas.
         * added debug() flag
+
+0.08    11 Dec 2007
+        * fix bug when there are FKs spanning schemas. Now all classes are created
+          before any .pm files are written.
  

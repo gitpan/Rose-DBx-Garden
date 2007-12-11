@@ -24,7 +24,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'text_field_size',
 );
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 =head1 NAME
 
@@ -287,6 +287,8 @@ EOF
 
     $Rose::DB::Object::Loader::Debug = $self->debug || $ENV{PERL_DEBUG} || 0;
 
+    my @classes;
+
     for my $schema ( keys %schemas ) {
 
         #carp "working on schema $schema";
@@ -310,63 +312,61 @@ EOF
         $self->class_prefix($schema_class);
         $self->base_class($schema_class);   # already wrote it, so can require
 
-        my @classes = $self->make_classes;
+        push @classes, $self->make_classes;
+    }
 
-        #carp dump \@classes;
+    #carp dump \@classes;
 
-        for my $class (@classes) {
+    for my $class (@classes) {
 
-            #carp "class: $class";
+        #carp "class: $class";
 
-            my $template = my $this_preamble = my $this_postamble = '';
+        my $template = my $this_preamble = my $this_postamble = '';
 
-            if ( $class->isa('Rose::DB::Object') ) {
+        if ( $class->isa('Rose::DB::Object') ) {
 
-                $template = $class->meta->perl_class_definition( indent => 4 )
-                    . "\n";
+            $template
+                = $class->meta->perl_class_definition( indent => 4 ) . "\n";
 
-                if ($preamble) {
-                    $this_preamble
-                        = ref $preamble eq 'CODE'
-                        ? $preamble->( $class->meta )
-                        : $preamble;
-                }
-
-                if ($postamble) {
-                    my $this_postamble
-                        = ref $postamble eq 'CODE'
-                        ? $postamble->( $class->meta )
-                        : $postamble;
-                }
-
-                $created_classes{$class} = 1;
-            }
-            elsif ( $class->isa('Rose::DB::Object::Manager') ) {
-                $template
-                    = $class->perl_class_definition( indent => 4 ) . "\n";
-
-                if ($preamble) {
-                    $this_preamble
-                        = ref $preamble eq 'CODE'
-                        ? $preamble->( $class->object_class->meta )
-                        : $preamble;
-                }
-
-                if ($postamble) {
-                    $this_postamble
-                        = ref $postamble eq 'CODE'
-                        ? $postamble->( $class->object_class->meta )
-                        : $postamble;
-                }
-            }
-            else {
-                croak "class $class not supported";
+            if ($preamble) {
+                $this_preamble
+                    = ref $preamble eq 'CODE'
+                    ? $preamble->( $class->meta )
+                    : $preamble;
             }
 
-            $self->_make_file( $class,
-                $this_preamble . $template . $this_postamble );
+            if ($postamble) {
+                my $this_postamble
+                    = ref $postamble eq 'CODE'
+                    ? $postamble->( $class->meta )
+                    : $postamble;
+            }
+
+            $created_classes{$class} = 1;
+        }
+        elsif ( $class->isa('Rose::DB::Object::Manager') ) {
+            $template = $class->perl_class_definition( indent => 4 ) . "\n";
+
+            if ($preamble) {
+                $this_preamble
+                    = ref $preamble eq 'CODE'
+                    ? $preamble->( $class->object_class->meta )
+                    : $preamble;
+            }
+
+            if ($postamble) {
+                $this_postamble
+                    = ref $postamble eq 'CODE'
+                    ? $postamble->( $class->object_class->meta )
+                    : $postamble;
+            }
+        }
+        else {
+            croak "class $class not supported";
         }
 
+        $self->_make_file( $class,
+            $this_preamble . $template . $this_postamble );
     }
 
     # RDBO classes all done. That was the easy part.
