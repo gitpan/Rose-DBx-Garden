@@ -42,4 +42,8 @@ Revision history for Rose-DBx-Garden
 0.08    11 Dec 2007
         * fix bug when there are FKs spanning schemas. Now all classes are created
           before any .pm files are written.
+
+0.09    12 Dec 2007
+        * change t/01 test to reflect correct rdbo version. Caught by xeeble3.
+
  

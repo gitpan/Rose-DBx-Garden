@@ -108,7 +108,9 @@ for my $class (
         diag( $form->field('id') );
 
     SKIP: {
-            if ( $Rose::HTML::Form::VERSION <= '0.550' )
+            my $rdbo_vers = $Rose::DB::Object::VERSION;
+            $rdbo_vers =~ s/_\d+$//;
+            if ( $rdbo_vers <= '0.766' )
             {
                 skip( " -- change requested in default column mapping", 1 );
             }
