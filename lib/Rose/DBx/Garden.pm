@@ -24,7 +24,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'text_field_size',
 );
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 NAME
 

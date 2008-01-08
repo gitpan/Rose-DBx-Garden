@@ -46,4 +46,7 @@ Revision history for Rose-DBx-Garden
 0.09    12 Dec 2007
         * change t/01 test to reflect correct rdbo version. Caught by xeeble3.
 
+0.10    08 Jan 2007
+        * added mysql test - no code changes
+
  
