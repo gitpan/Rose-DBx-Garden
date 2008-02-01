@@ -24,7 +24,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'text_field_size',
 );
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =head1 NAME
 
@@ -75,6 +75,7 @@ Should be a hash ref of 'rdbo' => 'rhtmlo' format.
 
 =cut
 
+# TODO better detection of the serial type on per-db basis
 sub init_column_field_map {
     return {
         'varchar'          => 'text',
@@ -113,7 +114,7 @@ in Rose::DB::Object::ConventionManager, you might do something like:
                                        split(m/_/, $col_name)
                                   );
                     }
-                  );
+                 );
 
 =cut
 
@@ -385,12 +386,6 @@ use base qw( Rose::HTML::Form );
 
 $base_form_class_code
 
-=head2 garden_prefix
-
-Returns the garden_prefix() value with which this class was created.
-
-=cut
-
 sub garden_prefix { '$garden_prefix' }
 
 1;
@@ -545,7 +540,7 @@ sub garden_default_field {
     my $type     = $self->column_field_map->{$col_type} || 'text';
     my $name     = $column->name;
     my $length   = $column->can('length') ? $column->length() : 0;
-    $length = 0 unless defined $length;
+    $length = 24 unless defined $length;  # 24 holds a timestamp
     my $maxlen = $self->text_field_size;
 
     if ( $length > $maxlen ) {
@@ -561,6 +556,32 @@ sub garden_default_field {
         rank        => $tabindex,
         size        => $length,
         maxlength   => $maxlen,
+        },
+EOF
+}
+
+=head2 garden_numeric_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a numeric Form field.
+
+=cut
+
+sub garden_numeric_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $type     = $self->column_field_map->{$col_type} || 'text';
+    my $name     = $column->name;
+
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => '$type',
+        class       => '$col_type',
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        size        => 16,
+        maxlength   => 32,
         },
 EOF
 }
@@ -639,7 +660,7 @@ sub garden_textarea_field {
     return <<EOF;
     $name => {
         id          => '$name',
-        type        => 'text',
+        type        => 'textarea',
         class       => '$col_type',
         label       => '$label',
         tabindex    => $tabindex,

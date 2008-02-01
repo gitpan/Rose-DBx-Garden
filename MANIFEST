@@ -6,6 +6,7 @@ README
 lib/Rose/DBx/Garden.pm
 t/00-load.t
 t/01-make_garden.t
+t/02-mysql.t
 t/boilerplate.t
 t/pod-coverage.t
 t/pod.t

@@ -49,4 +49,9 @@ Revision history for Rose-DBx-Garden
 0.10    08 Jan 2007
         * added mysql test - no code changes
 
+0.11    01 Feb 2008
+        * tweeked size check for column=>field code generation
+        * added numeric field generator method
+        * fix bug with textarea not being correctly generated
+        * add mysql test to MANIFEST
  
