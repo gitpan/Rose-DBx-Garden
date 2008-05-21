@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Rose-DBx-Garden
-version:             0.11
+version:             0.12
 abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
 license:             ~
 author:              

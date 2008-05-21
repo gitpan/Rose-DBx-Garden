@@ -54,4 +54,7 @@ Revision history for Rose-DBx-Garden
         * added numeric field generator method
         * fix bug with textarea not being correctly generated
         * add mysql test to MANIFEST
+
+0.12    21 May 2008
+        * fix failing test due to indiscriminate nuking of Symbol table.
  

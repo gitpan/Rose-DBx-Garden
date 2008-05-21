@@ -1,6 +1,6 @@
 use Test::More tests => 16;
 
-use File::Temp ( 'tempdir' );
+use File::Temp ('tempdir');
 use Rose::DBx::Garden;
 use Rose::DBx::TestDB;
 use Path::Class;
@@ -62,9 +62,14 @@ ok( my $garden = Rose::DBx::Garden->new(
     "garden obj created"
 );
 
-my $dir = $debug ? '/tmp/rose_garden' : tempdir('rose_garden_XXXX', CLEANUP => 1);
+my $dir
+    = $debug
+    ? '/tmp/rose_garden'
+    : tempdir( 'rose_garden_XXXX', CLEANUP => 1 );
 
 ok( $garden->make_garden($dir), "make_garden" );
+
+#push( @INC, $dir );
 
 # get db name as $garden made it
 my $dbname = $db->database;
@@ -75,23 +80,31 @@ $dbname = ucfirst($dbname);
 # are the files there?
 ok( -s file( $dir, 'MyRDBO.pm' ), "base class exists" );
 ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo.pm' ), "table class exists" );
-ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Form.pm' ),    "form class exists" );
-ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Manager.pm' ), "manager class exists" );
+ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Form.pm' ),
+    "form class exists" );
+ok( -s file( $dir, 'MyRDBO', $dbname, 'Foo', 'Manager.pm' ),
+    "manager class exists" );
 
 # do they compile?
 
 for my $class (
-    ( "MyRDBO", "MyRDBO::Form", "MyRDBO::${dbname}::Foo", "MyRDBO::${dbname}::Foo::Form", "MyRDBO::${dbname}::Foo::Manager" )
+    (   "MyRDBO",                 "MyRDBO::Form",
+        "MyRDBO::${dbname}::Foo", "MyRDBO::${dbname}::Foo::Form",
+        "MyRDBO::${dbname}::Foo::Manager"
+    )
     )
 {
 
     # have to clean up the symbol table manually
     # since these classes were created at runtime and are
     # not in %INC.
-    {
+
+    if ( $class eq "MyRDBO::${dbname}::Foo::Manager" ) {
         no strict 'refs';
         local *symtable = $class . '::';
         for my $sym ( keys %symtable ) {
+
+            #diag("deleting $symtable{$sym}");
             delete $symtable{$sym};
         }
     }
@@ -110,8 +123,7 @@ for my $class (
     SKIP: {
             my $rdbo_vers = $Rose::DB::Object::VERSION;
             $rdbo_vers =~ s/_\d+$//;
-            if ( $rdbo_vers < '0.766' )
-            {
+            if ( $rdbo_vers < '0.766' ) {
                 skip( " -- change requested in default column mapping", 1 );
             }
 
