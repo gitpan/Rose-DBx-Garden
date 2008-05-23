@@ -102,11 +102,12 @@ for my $class (
     if ( $class eq "MyRDBO::${dbname}::Foo::Manager" ) {
         no strict 'refs';
         local *symtable = $class . '::';
-        for my $sym ( keys %symtable ) {
-
-            #diag("deleting $symtable{$sym}");
-            delete $symtable{$sym};
-        }
+        delete $symtable{'get_foo'};
+        delete $symtable{'get_foo_iterator'};
+        delete $symtable{'get_foo_count'};
+        delete $symtable{'delete_foo'};
+        delete $symtable{'update_foo'};
+        delete $symtable{'object_class'};
     }
 
     eval "use $class";

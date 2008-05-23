@@ -57,4 +57,7 @@ Revision history for Rose-DBx-Garden
 
 0.12    21 May 2008
         * fix failing test due to indiscriminate nuking of Symbol table.
+
+0.13    22 May 2008
+        * fix (again) failing test to  indiscriminate nuking of Symbol table.
  
