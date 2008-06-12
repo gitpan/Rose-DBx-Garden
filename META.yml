@@ -1,10 +1,13 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         Rose-DBx-Garden
-version:      0.13
-version_from: lib/Rose/DBx/Garden.pm
-installdirs:  site
-requires:
+--- #YAML:1.0
+name:                Rose-DBx-Garden
+version:             0.14
+abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
+license:             ~
+author:              
+    - Peter Karman <karman@cpan.org>
+generated_by:        ExtUtils::MakeMaker version 6.42
+distribution_type:   module
+requires:     
     Data::Dump:                    0
     File::Basename:                0
     File::Slurp:                   0
@@ -15,6 +18,6 @@ requires:
     Rose::HTMLx::Form::Field::Autocomplete: 0
     Rose::HTMLx::Form::Field::Boolean: 0.01
     Test::More:                    0
-
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.30
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
+    version: 1.3

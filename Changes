@@ -60,4 +60,8 @@ Revision history for Rose-DBx-Garden
 
 0.13    22 May 2008
         * fix (again) failing test to  indiscriminate nuking of Symbol table.
+
+0.14    12 June 2008
+        * add limit_to_schemas() option
+        * put field class use and map settings into base Form code template instead of subclass template.
  
