@@ -64,4 +64,9 @@ Revision history for Rose-DBx-Garden
 0.14    12 June 2008
         * add limit_to_schemas() option
         * put field class use and map settings into base Form code template instead of subclass template.
- 
+
+0.15    11 Sept 2008
+        * added 'bigint' to field-column mapping
+        * add skip_map_class_forms boolean feature
+        * add include_autoinc_form_fields boolean feature 
+        * add serial field type

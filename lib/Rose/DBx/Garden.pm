@@ -11,9 +11,11 @@ use File::Basename;
 
 use Rose::Object::MakeMethods::Generic (
     boolean => [
-        'find_schemas'  => { default => 0 },
-        'force_install' => { default => 0 },
-        'debug'         => { default => 0 },
+        'find_schemas'                => { default => 0 },
+        'force_install'               => { default => 0 },
+        'debug'                       => { default => 0 },
+        'skip_map_class_forms'        => { default => 1 },
+        'include_autoinc_form_fields' => { default => 1 },
     ],
     'scalar --get_set_init' => 'column_field_map',
     'scalar --get_set_init' => 'column_to_label',
@@ -23,9 +25,10 @@ use Rose::Object::MakeMethods::Generic (
     'scalar --get_set_init' => 'base_form_class_code',
     'scalar --get_set_init' => 'text_field_size',
     'scalar --get_set_init' => 'limit_to_schemas',
+    'scalar'                => 'use_db_name',
 );
 
-our $VERSION = '0.14';
+our $VERSION = '0.15';
 
 =head1 NAME
 
@@ -42,6 +45,9 @@ Rose::DBx::Garden - bootstrap Rose::DB::Object and Rose::HTML::Form classes
          db              => My::DB->new, # Rose::DB object
          find_schemas    => 0,           # set true if your db has schemas
          force_install   => 0,           # do not overwrite existing files
+         debug           => 0,           # print actions on stderr
+         skip_map_class_forms => 1,      # no Form classes for many2many map classes
+         include_autoinc_form_fields => 1,
          # other Rose::DB::Object::Loader params here
  
  );
@@ -69,6 +75,15 @@ See L<Rose::Object::MakeMethods::Generic>.
 
 =cut
 
+=head2 include_autoinc_form_fields
+
+The default behaviour is to include db columns flagged as
+auto_increment from the generated Form class and to map
+them to the 'serial' field type. Set this value
+to a false value to exclude auto_increment columns as form fields.
+
+=cut
+
 =head2 init_column_field_map
 
 Sets the default RDBO column type to RHTMLO field type mapping.
@@ -86,7 +101,8 @@ sub init_column_field_map {
         'datetime'         => 'datetime',
         'epoch'            => 'datetime',
         'integer'          => 'integer',
-        'serial'           => 'hidden',
+        'bigint'           => 'integer',
+        'serial'           => 'serial',
         'time'             => 'time',
         'timestamp'        => 'datetime',
         'float'            => 'numeric',    # TODO nice to have ::Field::Float
@@ -187,6 +203,15 @@ with B<find_schemas> set to true.
 =cut
 
 sub init_limit_to_schemas { [] }
+
+=head2 use_db_name( I<name> )
+
+Define an explicit database name to use when generating class names.
+The default is taken from the Rose::DB connection information.
+B<NOTE:>This does not affect the db connection, only the string used
+in constructing class names.
+
+B<NOTE:>This option is ignored if find_schemas() is true.
 
 =head2 plant( I<path> )
 
@@ -303,6 +328,9 @@ EOF
             $self->_metadata_template );
 
     }
+    elsif ( $self->use_db_name ) {
+        %schemas = ( $self->use_db_name => '' );
+    }
     else {
 
         my $dbname = $db->database;
@@ -401,15 +429,12 @@ EOF
     }
 
     # RDBO classes all done. That was the easy part.
-    # now create a RHTMLO::Form tree using the same model
-    # by default we create a ::Form for each RDBO class,
-    # even though in practice we wouldn't
-    # use some of them (*_map classes e.g.).
+    # now create a RHTMLO::Form tree using the same model.
 
     # first create the base ::Form class.
-    my $base_form_class = join( '::', $garden_prefix, 'Form' );
+    my $base_form_class      = join( '::', $garden_prefix, 'Form' );
     my $base_form_class_code = $self->base_form_class_code;
-    my $base_form_template = <<EOF;
+    my $base_form_template   = <<EOF;
 package $base_form_class;
 use strict;
 
@@ -423,10 +448,12 @@ EOF
 
     $self->_make_file( $base_form_class, $base_form_template );
 
+    # second create a subclass of base ::Form for each RDBO class.
     for my $rdbo_class ( keys %created_classes ) {
 
-        # don't make forms for map tables
-        if ( $self->convention_manager->is_map_class($rdbo_class) ) {
+        if (    $self->convention_manager->is_map_class($rdbo_class)
+            and $self->skip_map_class_forms )
+        {
             print " ... skipping map_class $rdbo_class\n";
             next;
         }
@@ -547,6 +574,10 @@ sub _column_to_field {
 
     unless ( $self->can($field_maker) ) {
         $field_maker = 'garden_default_field';
+    }
+
+    if ( $col_type eq 'serial' and !$self->include_autoinc_form_fields ) {
+        return '';
     }
 
     return $self->$field_maker( $column, $label, $tabindex );
@@ -708,6 +739,27 @@ sub garden_hidden_field {
     $name => {
         id      => '$name',
         type    => 'hidden',
+        class   => '$col_type',
+        label   => '$label',
+        rank    => $tabindex,
+        },
+EOF
+}
+
+=head2 garden_serial_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a serial Form field.
+
+=cut
+
+sub garden_serial_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
+    return <<EOF;
+    $name => {
+        id      => '$name',
+        type    => 'serial',
         class   => '$col_type',
         label   => '$label',
         rank    => $tabindex,

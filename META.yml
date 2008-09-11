@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Rose-DBx-Garden
-version:             0.14
+version:             0.15
 abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
 license:             ~
 author:              
@@ -17,6 +17,7 @@ requires:
     Rose::HTML::Objects:           0
     Rose::HTMLx::Form::Field::Autocomplete: 0
     Rose::HTMLx::Form::Field::Boolean: 0.01
+    Rose::HTMLx::Form::Field::Serial: 0
     Test::More:                    0
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.3.html
