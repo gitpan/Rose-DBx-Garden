@@ -1,24 +1,32 @@
 --- #YAML:1.0
-name:                Rose-DBx-Garden
-version:             0.15
-abstract:            bootstrap Rose::DB::Object and Rose::HTML::Form classes
-license:             ~
-author:              
+name:               Rose-DBx-Garden
+version:            0.16
+abstract:           bootstrap Rose::DB::Object and Rose::HTML::Form classes
+author:
     - Peter Karman <karman@cpan.org>
-generated_by:        ExtUtils::MakeMaker version 6.42
-distribution_type:   module
-requires:     
-    Data::Dump:                    0
-    File::Basename:                0
-    File::Slurp:                   0
-    Path::Class:                   0
-    Rose::DB::Object:              0
-    Rose::DBx::TestDB:             0
-    Rose::HTML::Objects:           0
-    Rose::HTMLx::Form::Field::Autocomplete: 0
-    Rose::HTMLx::Form::Field::Boolean: 0.01
-    Rose::HTMLx::Form::Field::Serial: 0
-    Test::More:                    0
+license:            unknown
+distribution_type:  module
+configure_requires:
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
+requires:
+    Data::Dump:           0
+    File::Basename:       0
+    File::Slurp:          0
+    Path::Class:          0
+    Rose::DB::Object:     0
+    Rose::DBx::TestDB:    0
+    Rose::HTML::Objects:  0
+    Rose::HTMLx::Form::Field::Autocomplete:  0
+    Rose::HTMLx::Form::Field::Boolean:  0.01
+    Rose::HTMLx::Form::Field::Serial:  0
+    Test::More:           0
+no_index:
+    directory:
+        - t
+        - inc
+generated_by:       ExtUtils::MakeMaker version 6.54
 meta-spec:
-    url:     http://module-build.sourceforge.net/META-spec-v1.3.html
-    version: 1.3
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4

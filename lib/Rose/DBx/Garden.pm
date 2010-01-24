@@ -9,6 +9,8 @@ use Path::Class;
 use File::Slurp;
 use File::Basename;
 
+my $MAX_FIELD_SIZE = 64;
+
 use Rose::Object::MakeMethods::Generic (
     boolean => [
         'find_schemas'                => { default => 0 },
@@ -28,7 +30,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar'                => 'use_db_name',
 );
 
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 =head1 NAME
 
@@ -63,6 +65,11 @@ B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
 Rose::DBx::Garden bootstraps Rose::DB::Object and Rose::HTML::Form based projects.
 The idea is that you can point the module at a database and end up with work-able
 RDBO and Form classes with a single method call.
+
+Rose::DBx::Garden creates scaffolding only. 
+It creates Rose::DB::Object-based and Rose::HTML::Object-based classes, which
+assume 1 table == 1 form.  There is no generation of code to handle
+subforms, though it's relatively easy to add those later.
 
 Rose::DBx::Garden inherits from Rose::DB::Object::Loader, so all the magic there
 is also available here.
@@ -110,6 +117,7 @@ sub init_column_field_map {
         'decimal'          => 'numeric',
         'double precision' => 'numeric',
         'boolean'          => 'boolean',
+        'enum'             => 'menu',
     };
 }
 
@@ -168,7 +176,7 @@ size of a text field. The default is 64.
 
 =cut
 
-sub init_text_field_size {64}
+sub init_text_field_size {$MAX_FIELD_SIZE}
 
 =head2 init_base_code
 
@@ -180,7 +188,7 @@ sub init_base_code {''}
 
 =head2 init_base_form_class_code
 
-The return value is inserted into the base RHTMLO class created;
+The return value is inserted into the base RHTMLO class created.
 
 =cut
 
@@ -595,11 +603,14 @@ sub garden_default_field {
     my $type     = $self->column_field_map->{$col_type} || 'text';
     my $name     = $column->name;
     my $length   = $column->can('length') ? $column->length() : 0;
+    my $maxlen   = $self->text_field_size;
+    if ( defined $length ) {
+        $maxlen = $length;
+    }
     $length = 24 unless defined $length;    # 24 holds a timestamp
-    my $maxlen = $self->text_field_size;
 
-    if ( $length > $maxlen ) {
-        $length = $maxlen;
+    if ( $length > $MAX_FIELD_SIZE ) {
+        $length = $MAX_FIELD_SIZE;
     }
     return <<EOF;
     $name => {
@@ -677,10 +688,13 @@ sub garden_text_field {
     my $length   = $column->can('length') ? $column->length() : 0;
     $length = 0 unless defined $length;
     my $maxlen = $self->text_field_size;
-
-    if ( $length > $maxlen ) {
-        $length = $maxlen;
+    if ( defined $length ) {
+        $maxlen = $length;
     }
+    if ( $length > $MAX_FIELD_SIZE ) {
+        $length = $MAX_FIELD_SIZE;
+    }
+
     return <<EOF;
     $name => {
         id          => '$name',
@@ -695,6 +709,33 @@ sub garden_text_field {
 EOF
 }
 
+=head2 garden_menu_field( I<column>, I<label>, I<tabindex> )
+
+Returns the Perl code text for creating a menu Form field.
+
+=cut
+
+sub garden_menu_field {
+    my ( $self, $column, $label, $tabindex ) = @_;
+    my $col_type = $column->type;
+    my $name     = $column->name;
+    my $options  = dump $column->values;
+
+    #dump $column;
+
+    return <<EOF;
+    $name => {
+        id          => '$name',
+        type        => 'menu',
+        class       => '$col_type',
+        label       => '$label',
+        tabindex    => $tabindex,
+        rank        => $tabindex,
+        options     => $options,
+        },
+EOF
+}
+
 =head2 garden_textarea_field( I<column>, I<label>, I<tabindex> )
 
 Returns Perl code for textarea field.
@@ -705,13 +746,7 @@ sub garden_textarea_field {
     my ( $self, $column, $label, $tabindex ) = @_;
     my $col_type = $column->type;
     my $name     = $column->name;
-    my $length   = $column->can('length') ? $column->length() : 0;
-    $length = 0 unless defined $length;
-    my $maxlen = $self->text_field_size;
 
-    if ( $length > $maxlen ) {
-        $length = $maxlen;
-    }
     return <<EOF;
     $name => {
         id          => '$name',
@@ -720,7 +755,7 @@ sub garden_textarea_field {
         label       => '$label',
         tabindex    => $tabindex,
         rank        => $tabindex,
-        size        => $maxlen . 'x8',
+        size        => $MAX_FIELD_SIZE . 'x8',
         },
 EOF
 }
