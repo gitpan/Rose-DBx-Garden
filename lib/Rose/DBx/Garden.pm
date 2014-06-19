@@ -30,7 +30,7 @@ use Rose::Object::MakeMethods::Generic (
     'scalar'                => 'use_db_name',
 );
 
-our $VERSION = '0.190';
+our $VERSION = '0.191';
 
 =head1 NAME
 
@@ -60,9 +60,7 @@ Rose::DBx::Garden - bootstrap Rose::DB::Object and Rose::HTML::Form classes
 
 =head1 DESCRIPTION
 
-B<** DEVELOPMENT RELEASE -- API SUBJECT TO CHANGE **>
-
-Rose::DBx::Garden bootstraps Rose::DB::Object and Rose::HTML::Form based projects.
+Rose::DBx::Garden bootstraps L<Rose::DB::Object> and L<Rose::HTML::Form> based projects.
 The idea is that you can point the module at a database and end up with work-able
 RDBO and Form classes with a single method call.
 
@@ -71,7 +69,7 @@ It creates Rose::DB::Object-based and Rose::HTML::Object-based classes, which
 assume 1 table == 1 form.  There is no generation of code to handle
 subforms, though it's relatively easy to add those later.
 
-Rose::DBx::Garden inherits from Rose::DB::Object::Loader, so all the magic there
+Rose::DBx::Garden inherits from L<Rose::DB::Object::Loader>, so all the magic there
 is also available here.
 
 =head1 METHODS
@@ -247,7 +245,7 @@ sub plant {
 
     my $path_obj = dir($path);
 
-    $path_obj->mkpath(1);
+    $path_obj->mkpath( $self->debug );
 
     if ( !-w "$path_obj" or !-d "$path_obj" ) {
         croak("$path_obj is not a write-able directory: $!");
@@ -856,7 +854,7 @@ sub _make_file {
         }
     }
 
-    $fullpath->mkpath(1) if $path;
+    $fullpath->mkpath( $self->debug ) if $path;
 
     if ( $self->perltidy_opts ) {
         require Perl::Tidy;
